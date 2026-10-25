@@ -7,6 +7,9 @@ const suites = [
   "verify_distribution_ui.cjs",
   "verify_chart_clarity_ui.cjs",
   "verify_group_tabs_ui.cjs",
+  "verify_feature_usage_ui.cjs",
+  "verify_issue_usage_ui.cjs",
+  "verify_async_stability_ui.cjs",
 ];
 for (const suite of suites) {
   const result = spawnSync(process.execPath, [require.resolve(`./${suite}`)], { stdio: "inherit", env: process.env });

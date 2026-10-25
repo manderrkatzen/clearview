@@ -55,7 +55,7 @@ ReviewModules["cross-column"] = (() => {
    }
    async function aiExplore(issue,session){ // XCOL-A-01: bounded actual inputs + target, not target-only strings.
      const fields=[...new Set([issue.column,...issue.crossRule.inputs])],selected=lockedRows(issue,session),context={column:issue.column,type:"cross-column",role:issue.crossRule.operation==="date-order"?"date":ReviewCore.numericType(issue.column)?"number":"text",headers:state.headers,meaning:issue.crossRule.label,allowedFixes:getFixOptions(issue,session).map(option=>option.key),count:state.rows.length,affected:selected.length,values:ReviewPageEngine.frequencies(selected,issue.column).slice(0,20).map(group=>({value:group.value,count:group.rows.length,locked:true})),samples:[],statistics:{},groups:[],comparisonRows:selected.slice(0,20).map(row=>Object.fromEntries(fields.map(column=>[column,String(row[column]??"").slice(0,500)]))),columnStatistics:Object.fromEntries(fields.map(column=>[column,cleaningProfile().columns.find(profile=>profile.column===column)?.statistics || {}])),relationship:{label:issue.crossRule.label,target:issue.column,inputs:issue.crossRule.inputs,operation:issue.crossRule.operation,tolerance:session.tolerance}};
-     const result=await ReviewCore.requestAi(issue,"explore",context);if(result?.suggestedFix){session.aiFixProposal=result.suggestedFix;renderPreservingReviewFocus();}
+     const result=await ReviewCore.requestAi(issue,"explore",context);if(result?.suggestedFix){session.aiFixProposal=result.suggestedFix;ReviewCore.renderCurrent(issue);}
    }
    function bind(issue,session){
        const changed=edit=>{const before=lockedRows(issue,session).length;edit();ReviewCore.lockChanged(issue,before);renderPreservingReviewFocus();};

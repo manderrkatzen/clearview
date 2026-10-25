@@ -268,7 +268,14 @@ function cancelAutomaticReview(announce = true) {
   profileWorker?.terminate(); profileWorker = null;
   if (announce) { state.analysisStatus = "cancelled"; state.analysisMessage = "AI interpretation cancelled. Local findings and manual review remain available."; render(); }
 }
-function refreshReviewScreen() { if (["data", "issues"].includes(state.screen)) renderPreservingReviewFocus(); }
+function refreshReviewScreen() {
+  if (state.screen === "issues") renderPreservingReviewFocus();
+  // Import analysis updates its status control, not the entire Dataset form and its open tools.
+  if (state.screen === "data") {
+    const action = document.getElementById("refreshInterpretation");
+    if (action) { const pending = ["profiling", "running"].includes(state.analysisStatus); action.textContent = pending ? "Analyzing…" : "Refresh AI analysis"; action.setAttribute("aria-busy", String(pending)); action.title = state.analysisMessage || ""; }
+  }
+}
 async function profileInBackground(revision, signal) {
   if (typeof Worker === "undefined") return cleaningProfile();
   return new Promise((resolve, reject) => {

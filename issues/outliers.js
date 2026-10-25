@@ -53,8 +53,8 @@ ReviewModules.outlier = (() => {
     const contextColumns=contexts(issue,session),p=profile(issue),ids=new Set(p.rows.map(row=>row._row));
     return {column:issue.column,type:"outlier",role:"number",headers:state.headers,meaning:columnPolicy(issue.column).meaning,allowedFixes:getFixOptions(issue,session).map(option=>option.key),count:state.rows.length,affected:lockedRows(issue,session).length,values:ReviewPageEngine.frequencies(p.rows,issue.column).slice(0,200).map(group=>({value:group.value,count:group.rows.length,locked:group.rows.some(row=>!session.unlocked.includes(row._row)),context:Object.fromEntries(contextColumns.map(column=>[column,String(group.rows[0][column]??"").slice(0,500)]))})),samples:state.rows.filter(row=>!ids.has(row._row)&&observationState(row,issue.column)==="present").slice(0,20).map(row=>row[issue.column]),statistics:cleaningProfile().columns.find(profile=>profile.column===issue.column).statistics,groups:[],rule:{...outlierDraft(issue),lower:Number.isFinite(p.lower)?p.lower:null,upper:Number.isFinite(p.upper)?p.upper:null},assessments:session.outlierAssessment?.values || []};
   }
-  async function aiExplore(issue,session){const result=await ReviewCore.requestAi(issue,"outlier-assess",context(issue,session));if(result){session.outlierAssessment=result;renderPreservingReviewFocus();}}
-  async function aiFix(issue,session){const result=await ReviewCore.requestAi(issue,"fix",context(issue,session));if(result?.operation){session.aiFixProposal=result;renderPreservingReviewFocus();}}
+  async function aiExplore(issue,session){const result=await ReviewCore.requestAi(issue,"outlier-assess",context(issue,session));if(result){session.outlierAssessment=result;ReviewCore.renderCurrent(issue);}}
+  async function aiFix(issue,session){const result=await ReviewCore.requestAi(issue,"fix",context(issue,session));if(result?.operation){session.aiFixProposal=result;ReviewCore.renderCurrent(issue);}}
   function bind(issue,session) { // OUT-E-04, OUT-E-06, OUT-E-09, OUT-E-10
     init(issue,session);const oldCount=session.lastLockedCount ?? lockedRows(issue,session).length;
     const replot=()=>renderPreservingReviewFocus();

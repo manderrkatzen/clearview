@@ -60,7 +60,7 @@ ReviewModules.missing = (() => {
       const result=await analyticalTask("compare",issue.column,{options:{...analyticalOptions(),classifications}});
       if(source!==state.original || signature!==JSON.stringify([state.datasetRevision,session.locked]))return;
       session.comparison=result;session.compareKey=signature;
-      if(!session.groupingUserChosen){
+      if(session.tab==="explore"&&!session.groupingUserChosen){
         const eligible=new Set(groupingColumns(issue)),strongest=/missing_tokens/i.test(issue.column)?null:(result.results||[]).filter(item=>item.type==="categorical"&&item.effectSize>0&&eligible.has(item.column)).sort((a,b)=>b.effectSize-a.effectSize)[0];
         if(session.autoGroupColumn&&strongest&&session.locks[0]===session.autoGroupColumn&&session.locks[0]!==strongest.column){session.locks=[strongest.column];session.autoGroupColumn=strongest.column;session.banding[strongest.column]={mode:"quantiles",k:5,minCategoryCount:5};session.bandCache=null;}
       }
@@ -185,12 +185,12 @@ ReviewModules.missing = (() => {
     }
     combined.locks=[...new Set(combined.locks)];combined.note=notes.flatMap(note=>note.split(/(?<=[.!?])\s+(?=[A-Z])/)).slice(0,4).join(" ");
      session.ai=combined;session.missingAssessment=combined;session.assessmentProvider=session.aiProvider;session.aiStatus="ready";
-     if(!session.explicitSelection){const blanks=values.filter(group=>!group.value).map(group=>group.value),trusted=values.filter(group=>group.value&&combined.assessments.some(entry=>entry.value===group.value&&entry.confidence>=60)).map(group=>group.value);session.locked=[...new Set([...blanks,...trusted])];}
-     renderPreservingReviewFocus();
+     if(session.tab==="explore"&&!session.explicitSelection){const blanks=values.filter(group=>!group.value).map(group=>group.value),trusted=values.filter(group=>group.value&&combined.assessments.some(entry=>entry.value===group.value&&entry.confidence>=60)).map(group=>group.value);session.locked=[...new Set([...blanks,...trusted])];}
+     ReviewCore.renderCurrent(issue);
   }
   async function aiFix(issue,session) {
     const result=await ReviewCore.requestAi(issue,"fix",aiContext(issue,session,"fix",groups(issue).filter(group=>session.locked.includes(group.value))));
-    if(result?.operation && getFixOptions(issue,session).some(option=>option.key===result.operation&&!option.disabled)){session.aiFixProposal=result;renderPreservingReviewFocus();}
+    if(result?.operation && getFixOptions(issue,session).some(option=>option.key===result.operation&&!option.disabled)){session.aiFixProposal=result;ReviewCore.renderCurrent(issue);}
   }
   // MISS-A-04: discover the minimum safe context first; no row values leave the browser until the analyst confirms the requested fields.
   function availableRuleColumns(issue){const profiles=new Map(cleaningProfile().columns.map(entry=>[entry.column,entry]));return state.headers.filter(column=>column!==issue.column&&!idLike(column)&&profiles.has(column)&&!ReviewModules.sensitive?.isSensitiveColumn?.(column)&&!restrictedAiColumn(column)).map(column=>({column,role:profiles.get(column)?.role||"text"}));}
@@ -225,8 +225,8 @@ ReviewModules.missing = (() => {
     const result=await ReviewCore.requestAi(issue,"rule-plan",{column:issue.column,role:ruleTargetRole(issue),meaning:columnPolicy(issue.column).meaning||"",headers:[issue.column,...availableColumns.map(entry=>entry.column)],availableColumns},instruction);
     if(generation!==session.ruleGeneration)return;
     session.ruleBusy=false;
-    if(!result){session.ruleError=ruleRequestError(session);session.ruleStatus="error";renderPreservingReviewFocus();return;}
-    session.rulePlan=result;session.ruleProvider=session.aiProvider||"configured provider";session.ruleColumns=[...result.columns];session.ruleStatus=result.needsClarification?"clarification":"planned";renderPreservingReviewFocus();
+    if(!result){session.ruleError=ruleRequestError(session);session.ruleStatus="error";ReviewCore.renderCurrent(issue);return;}
+    session.rulePlan=result;session.ruleProvider=session.aiProvider||"configured provider";session.ruleColumns=[...result.columns];session.ruleStatus=result.needsClarification?"clarification":"planned";ReviewCore.renderCurrent(issue);
   }
   async function requestRuleValues(issue,session,rowIds=null){
     const columns=session.ruleColumns.filter(column=>session.rulePlan?.columns.includes(column)),allRows=ReviewCore.affected(issue),selectedRows=rowIds?allRows.filter(row=>rowIds.includes(row._row)):allRows;
@@ -246,13 +246,13 @@ ReviewModules.missing = (() => {
       session.ruleProvider=session.aiProvider||session.ruleProvider||"configured provider";
       result.suggestions.forEach(suggestion=>{const proposal=safe.find((entry,index)=>`r${index}`===suggestion.id);if(proposal){proposal.value=suggestion.value===null?null:ReviewCore.numericType(issue.column)?CleaningEngine.parseNumber(suggestion.value,columnPolicy(issue.column)).toFixed(ReviewCore.precision(issue.column)):suggestion.value;proposal.reason=suggestion.reason;proposal.status=suggestion.value===null?"unresolved":"suggested";}});
       if(!rowIds)session.ruleProgress.completed++;
-      renderPreservingReviewFocus();
+      ReviewCore.renderCurrent(issue);
     }
     if(generation!==session.ruleGeneration)return;
     if(!rowIds&&session.ruleError)initial.filter(proposal=>proposal.status==="pending").forEach(proposal=>{proposal.status="unresolved";proposal.reason="No suggestion was generated because the AI request could not be completed.";});
     session.ruleBusy=false;if(session.ruleStatus==="generating")session.ruleStatus=session.ruleError?"error":"ready";
     if(rowIds){const replacement=initial[0],existing=session.ruleProposals.findIndex(proposal=>proposal.rowId===replacement.rowId);if(!session.ruleError){if(existing>=0)session.ruleProposals[existing]=replacement;else session.ruleProposals.push(replacement);session.ruleProgress.completed=1;}else if(existing>=0)session.ruleProposals[existing].status=session.ruleProposals[existing].value===null?"unresolved":"suggested";}
-    renderPreservingReviewFocus();
+    ReviewCore.renderCurrent(issue);
   }
   function refreshRuleSelection(issue,session){
     const approved=(session.ruleProposals||[]).filter(proposal=>proposal.status==="approved"&&proposal.value!==null),before=ReviewCore.affected(issue).length;

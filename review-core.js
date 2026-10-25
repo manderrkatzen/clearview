@@ -48,6 +48,8 @@ var ReviewCore = (() => {
   function choice(issue) { const options = optionList(issue); return options.find(option=>option.key === data(issue).fix) || options[0]; }
   function select(id,tab = null) { const issue = state.issues.find(item=>item.id === id); if (!issue) return; state.selectedIssue = id; state.screen = "issues"; data(issue).tab = tab || (issue.status === "open" ? "explore" : "review"); render(); document.querySelector(`[data-review-issue="${id}"]`)?.scrollIntoView({block:"nearest"}); }
   function current() { return state.issues.find(issue=>issue.id === state.selectedIssue); }
+  // Async completions may cache evidence for another issue, but must not redraw unrelated work.
+  function renderCurrent(issue) { if (state.screen === "issues" && current() === issue) renderPreservingReviewFocus(); }
   function showScopeUpdate(issue) { // CORE-17: the three-second notice starts when Fix becomes visible.
     const session=data(issue);if(!session.pendingUpdate)return;
     session.updated=session.pendingUpdate;session.pendingUpdate="";clearTimeout(session.updateTimer);
@@ -72,7 +74,7 @@ var ReviewCore = (() => {
     if(session.tab==="fix")showScopeUpdate(issue);
   }
   async function compute(issue) {
-    const session = data(issue), generation = ++session.generation, revision = state.datasetRevision, selected = choice(issue); session.pending = true; session.preview = null; session.error = ""; renderPreservingReviewFocus();
+    const session = data(issue), generation = ++session.generation, revision = state.datasetRevision, selected = choice(issue); session.pending = true; session.preview = null; session.error = ""; renderCurrent(issue);
     try {
       if(selected.disabled)throw new Error(selected.disabled);
       const parameters = await selected.compute({issue,session,rows:affected(issue)});
@@ -84,7 +86,7 @@ var ReviewCore = (() => {
       if (generation !== session.generation || revision !== state.datasetRevision) return;
       session.preview = guidedPreview(issue,draft);for(const key of ["addedRows","addedColumns","removedColumns","rowLineage"])session.preview[key] ||= [];if(parameters.parseBlocked?.length){const reasons=new Map(parameters.parseBlocked.map(entry=>[entry.rowId,entry.reason]));session.preview.blocked=session.preview.blocked.map(entry=>({...entry,reason:reasons.get(entry.rowId)||entry.reason}));} session.fingerprint = session.preview.fingerprint; session.selectedCount = rowIds.length;
     } catch (error) { if (generation === session.generation) session.error = error.message; }
-    finally { if (generation === session.generation) {session.pending=false;if (state.screen === "issues" && current()?.id === issue.id) renderPreservingReviewFocus();} }
+    finally { if (generation === session.generation) {session.pending=false;renderCurrent(issue);} }
   }
   async function apply(issue) { // CORE-27, CORE-28: recheck fingerprint, no silent valid subset.
     const session = data(issue), draft = reviewDraft(issue), option = choice(issue);
@@ -144,8 +146,8 @@ var ReviewCore = (() => {
     const session=data(issue), source=state.original, revision=state.datasetRevision,instruction=typeof instructionOverride==="string"?instructionOverride:session.instruction||"",fingerprint=()=>JSON.stringify([session.locked,session.locks,session.banding,session.instruction,instruction,session.range,session.tolerance,session.targetFormat,session.sourceDate,session.percent,kind(issue)==="outlier"?outlierDraft(issue):null]),scope=fingerprint();
     session.aiMode=mode;
     // SENS-D-02: another issue on the same personal column must not bypass local-only review.
-    if (ReviewModules.sensitive?.isSensitiveColumn(issue.column) || containsSensitiveText({context,instruction})) { session.aiRequested=true; session.aiStatus="error"; session.aiReason="error";session.aiLocalOnly=true;session.ai=null; renderPreservingReviewFocus(); return; }
-    session.aiController?.abort(); const controller=new AbortController(); session.aiController=controller; session.aiStatus="pending"; session.aiReason=""; session.aiValidationError=false;session.aiValidationDetail="";session.aiLocalOnly=false;session.aiStale=false;session.ai=null; session.aiRequested=true; renderPreservingReviewFocus();
+    if (ReviewModules.sensitive?.isSensitiveColumn(issue.column) || containsSensitiveText({context,instruction})) { session.aiRequested=true; session.aiStatus="error"; session.aiReason="error";session.aiLocalOnly=true;session.ai=null; renderCurrent(issue); return; }
+    session.aiController?.abort(); const controller=new AbortController(); session.aiController=controller; session.aiStatus="pending"; session.aiReason=""; session.aiValidationError=false;session.aiValidationDetail="";session.aiLocalOnly=false;session.aiStale=false;session.ai=null; session.aiRequested=true; renderCurrent(issue);
     try {
       const config=await fetch("/api/ai/review",{signal:controller.signal}).then(response=>response.json()); turnstileSiteKey=config.turnstileSiteKey||"";
       const token=await requestTurnstileToken(controller.signal);
@@ -156,7 +158,7 @@ var ReviewCore = (() => {
       if(scope!==fingerprint()){session.aiStatus="error";session.aiReason="error";session.aiStale=true;return;}
       session.ai=payload.result; session.aiProvider=payload.provider||"configured provider"; session.aiStatus="ready"; return payload.result;
     } catch(error) { if(source===state.original && revision===state.datasetRevision && controller===session.aiController && error.name!=="AbortError") {session.aiStatus="error";session.aiReason ||= /timed|timeout/i.test(error.message) ? "timed out" : "error";} }
-    finally { if(state.screen==="issues" && current()?.id===issue.id) renderPreservingReviewFocus(); }
+    finally { renderCurrent(issue); }
   }
   let sensitiveTextCache=null;
   function containsSensitiveText(value) {
@@ -254,5 +256,5 @@ var ReviewCore = (() => {
     reviewContent:(issue,change)=>({lead:`${change.patches.length} selected values updated.`,sub:change.note||"No note",count:change.rows.length,change:{metrics:[{label:"Values changed",value:change.patches.length},{label:"Rows removed",value:change.removedRows.length}]},examples:generic.fixContent(issue,{},change).examples}),
     bind:(issue,session)=>document.getElementById("manualReplacement")?.addEventListener("change",event=>{session.value=event.target.value;compute(issue);})
   };
-  return {risks,order,kind,data,moduleFor,numericType,precision,format,count,metricColumn,total,money,affected,exploreScope,measure,choice,select,current,switchTab,lockChanged,compute,apply,accept,undo,optionsHtml,fixHtml,reviewHtml,aiStatus,requestAi,containsSensitiveText,limitedItems,showAllHtml,openRowsPanel,bindShared,detect,bindDatasetSettings};
+  return {risks,order,kind,data,moduleFor,numericType,precision,format,count,metricColumn,total,money,affected,exploreScope,measure,choice,select,current,renderCurrent,switchTab,lockChanged,compute,apply,accept,undo,optionsHtml,fixHtml,reviewHtml,aiStatus,requestAi,containsSensitiveText,limitedItems,showAllHtml,openRowsPanel,bindShared,detect,bindDatasetSettings};
 })();

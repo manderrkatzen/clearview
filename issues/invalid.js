@@ -55,7 +55,7 @@ ReviewModules.invalid = (() => {
   }
   async function aiExplore(issue,session) { // INV-A-01: bounded context values, not source rows.
     const contextColumns=contexts(issue), selected=lockedRows(issue,session),context={column:issue.column,type:"invalid",role:ReviewCore.numericType(issue.column)?"number":session.range?.type==="date"?"date":"text",headers:state.headers,meaning:`${ruleText(issue,session)}. ${columnPolicy(issue.column).meaning}`.slice(0,300),allowedFixes:getFixOptions(issue,session).filter(option=>!option.disabled).map(option=>option.key),count:state.rows.length,affected:selected.length,values:ReviewPageEngine.frequencies(selected,issue.column).slice(0,20).map(group=>({value:group.value,count:group.rows.length,locked:true,context:Object.fromEntries(contextColumns.map(column=>[column,String(group.rows[0][column]??"").slice(0,500)]))})),samples:[],statistics:{},groups:[]};
-    const result=await ReviewCore.requestAi(issue,"explore",context);if(result?.suggestedFix){session.aiFixProposal=result.suggestedFix;renderPreservingReviewFocus();}
+    const result=await ReviewCore.requestAi(issue,"explore",context);if(result?.suggestedFix){session.aiFixProposal=result.suggestedFix;ReviewCore.renderCurrent(issue);}
   }
   function bind(issue,session) {
     document.querySelectorAll("[data-invalid-row]").forEach(input=>input.onchange=()=>{const before=lockedRows(issue,session).length,id=input.dataset.invalidRow;session.locked=input.checked?session.locked.concat(id):session.locked.filter(value=>value!==id);ReviewCore.lockChanged(issue,before);renderPreservingReviewFocus();});

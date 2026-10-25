@@ -61,10 +61,12 @@ function enhanceCapabilityPages() {
 function enhanceRuleSuggestions() {
   const store = capabilityStore(), activeIds = new Set([...(state.ruleConfig.schema || []), ...(state.ruleConfig.metrics || []), ...(state.ruleConfig.relations || [])].map(rule => rule.id));
   const suggestions = (store.suggestions || []).filter(suggestion => !activeIds.has(suggestion.rule.id));
-  screen.insertAdjacentHTML("beforeend", `<section class="workspace-card"><h2>Suggested business checks</h2><p>Definitions are opt-in and tested locally; accepting does not change data.</p>${store.suggestions ? `<details><summary>Review ${suggestions.length} suggestions</summary>${suggestions.map((suggestion, index) => `<article class="saved-rule-list"><h3>${escapeHtml(suggestion.rule.name || suggestion.rule.column)}</h3><p>${escapeHtml(suggestion.note)}</p><small>${(suggestion.passRate * 100).toFixed(1)}% pass · ${suggestion.passed} / ${suggestion.usable} usable rows</small><button class="secondary" data-accept-rule="${index}">Accept definition and run checks</button></article>`).join("") || "<p>No additional supported suggestions.</p>"}</details>` : `<p role="status">${store.suggestionError ? escapeHtml(store.suggestionError) : "Testing candidate definitions…"}</p>`}</section>`);
+  const html = `<section class="workspace-card" id="datasetRuleSuggestions"><h2>Suggested business checks</h2><p>Definitions are opt-in and tested locally; accepting does not change data.</p>${store.suggestions ? `<details><summary>Review ${suggestions.length} suggestions</summary>${suggestions.map((suggestion, index) => `<article class="saved-rule-list"><h3>${escapeHtml(suggestion.rule.name || suggestion.rule.column)}</h3><p>${escapeHtml(suggestion.note)}</p><small>${(suggestion.passRate * 100).toFixed(1)}% pass · ${suggestion.passed} / ${suggestion.usable} usable rows</small><button class="secondary" data-accept-rule="${index}">Accept definition and run checks</button></article>`).join("") || "<p>No additional supported suggestions.</p>"}</details>` : `<p role="status">${store.suggestionError ? escapeHtml(store.suggestionError) : "Testing candidate definitions…"}</p>`}</section>`;
+  const existing = screen.querySelector("#datasetRuleSuggestions");
+  if (existing) existing.outerHTML = html; else screen.insertAdjacentHTML("beforeend", html);
   if (!store.suggestions && !store.suggestionPending && !store.suggestionError) {
     store.suggestionPending = true;
-    analyticalTask("suggestions", "", { options: capabilityOptions() }).then(result => { store.suggestions = result; }).catch(error => { store.suggestionError = error.message; }).finally(() => { store.suggestionPending = false; if (store === capabilityStore() && state.screen === "data") renderPreservingReviewFocus(); });
+    analyticalTask("suggestions", "", { options: capabilityOptions() }).then(result => { store.suggestions = result; }).catch(error => { store.suggestionError = error.message; }).finally(() => { store.suggestionPending = false; if (store === capabilityStore() && state.screen === "data") enhanceRuleSuggestions(); });
   }
   document.querySelectorAll("[data-accept-rule]").forEach(button => button.onclick = () => {
     try {
@@ -77,13 +79,17 @@ function enhanceRuleSuggestions() {
 }
 function enhanceQualityScorecard() {
   const store = capabilityStore(), table = screen.querySelector(".profile-table"); if (!table) return;
-  table.tHead.rows[0].insertAdjacentHTML("beforeend", "<th>Validity</th><th>Consistency</th>");
+  if (!table.querySelector("th[data-quality-scorecard]")) table.tHead.rows[0].insertAdjacentHTML("beforeend", '<th data-quality-scorecard="validity">Validity</th><th data-quality-scorecard="consistency">Consistency</th>');
   [...table.tBodies[0].rows].forEach((row, index) => {
     const result = store.scorecards?.[index];
-    row.insertAdjacentHTML("beforeend", `<td>${result ? result.hasRules ? result.validity === null ? "—" : `${result.validity.toFixed(1)}%` : "No rules" : "Calculating…"}</td><td>${result?.consistency === null ? "—" : result ? `${result.consistency.toFixed(1)}%` : "Calculating…"}</td>`);
+    for (const kind of ["validity", "consistency"]) {
+      let cell = row.querySelector(`[data-quality-scorecard="${kind}"]`);
+      if (!cell) { cell = document.createElement("td"); cell.dataset.qualityScorecard = kind; row.append(cell); }
+      cell.textContent = !result ? store.scorecardError ? "Unavailable" : "Calculating…" : kind === "validity" && !result.hasRules ? "No rules" : result[kind] === null ? "—" : `${result[kind].toFixed(1)}%`;
+    }
   });
   if (!store.scorecards && !store.scorecardPending && !store.scorecardError) {
     store.scorecardPending = true;
-    analyticalTask("scorecards", "", { params: { rules: state.ruleConfig }, options: capabilityOptions() }).then(result => { store.scorecards = result; }).catch(error => { store.scorecardError = error.message; }).finally(() => { store.scorecardPending = false; if (store === capabilityStore() && state.screen === "data") renderPreservingReviewFocus(); });
+    analyticalTask("scorecards", "", { params: { rules: state.ruleConfig }, options: capabilityOptions() }).then(result => { store.scorecards = result; }).catch(error => { store.scorecardError = error.message; }).finally(() => { store.scorecardPending = false; if (store === capabilityStore() && state.screen === "data") enhanceQualityScorecard(); });
   }
 }
