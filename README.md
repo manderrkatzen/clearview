@@ -127,4 +127,4 @@ Set `BASE_URL` to target another running instance. `ui_test_sheet.csv` is a debu
 
 </details>
 
-[Deployment details](DEPLOYMENT.md) · [Font attribution](fonts/README.md)
+[Product build guide](Build_Guide/README.md) · [Deployment details](DEPLOYMENT.md) · [Font attribution](fonts/README.md)
