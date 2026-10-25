@@ -1,10 +1,10 @@
-# ClearData
+# Clearview
 
 **A portfolio project that makes data-cleaning decisions inspectable and reversible.**
 
 [Explore the live project](https://clearview-data-quality-copilot.ritwikranjanpandey.workers.dev)
 
-ClearData brings together data profiling, contextual issue detection, before-and-after analysis, optional AI recommendations, and reversible change history. The project covers the complete path from a raw CSV to a reviewed dataset and an exportable decision record.
+Clearview brings together data profiling, contextual issue detection, before-and-after analysis, optional AI recommendations, and reversible change history. The project covers the complete path from a raw CSV to a reviewed dataset and an exportable decision record.
 
 ## The problem I focused on
 

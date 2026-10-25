@@ -166,7 +166,7 @@ const { assert, session, csv, basicRows } = require("./acceptance-helper.cjs");
         assert.equal(report.activeDecisions.length, 1);
         const log = JSON.parse((await download("#downloadDecisionJson")).content);
         assert.ok(log.events.some(event => event.kind === "approval"));
-        assert.match((await download("#downloadQualityHtml")).content, /ClearData quality report/);
+        assert.match((await download("#downloadQualityHtml")).content, /Clearview quality report/);
         assert.match((await download("#downloadDecisionCsv")).content, /decision_id/);
       });
       await step("Save named project and portable backup with history", ["D13"], async () => {

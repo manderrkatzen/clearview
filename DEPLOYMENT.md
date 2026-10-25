@@ -1,6 +1,6 @@
 # Deployment
 
-ClearData uses a dependency-free Node server locally and a Cloudflare Worker for the hosted application. The Worker serves static assets and handles the same-origin AI API.
+Clearview uses a dependency-free Node server locally and a Cloudflare Worker for the hosted application. The Worker serves static assets and handles the same-origin AI API.
 
 **Live application:** https://clearview-data-quality-copilot.ritwikranjanpandey.workers.dev
 

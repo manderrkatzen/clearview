@@ -1,4 +1,4 @@
-# ClearData — Product Build Guide
+# Clearview — Product Build Guide
 
 ## Product objective
 
@@ -12,7 +12,7 @@ The experience should make five things clear:
 4. What changes if that treatment is approved.
 5. How to inspect, explain, export, or undo the decision afterward.
 
-This guide expresses the objectives and acceptance criteria of the implemented ClearData experience as a page-by-page product reference. It describes behavior and feature ownership rather than prescribing code or a particular implementation technique.
+This guide expresses the objectives and acceptance criteria of the implemented Clearview experience as a page-by-page product reference. It describes behavior and feature ownership rather than prescribing code or a particular implementation technique.
 
 ## Page briefs
 
