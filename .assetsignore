@@ -23,9 +23,6 @@
 !review-charts.js
 !issues/
 !issues/*.js
-!ui_pages/
-ui_pages/*
-!ui_pages/shared.css
 !review-page.css
 !review-reference.css
 !review-bands.js

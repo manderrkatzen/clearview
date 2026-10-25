@@ -8,13 +8,21 @@ node_modules/
 *.pem
 *.key
 
-# Impeccable's downloaded engine and temporary review artifacts are local tooling.
-.opencode/skills/impeccable/scripts/bin/
-**/.impeccable/config.local.json
-**/.impeccable/*.png
-**/.impeccable/review/
-**/.impeccable/questions/
-**/.impeccable/live/server.json
-**/.impeccable/live/sessions/
-**/.impeccable/live/previews/
-**/.impeccable/live/cache/
+# Local agent/design tools and working references are not part of the public project.
+/.opencode/
+/.impeccable/
+/.local/
+/AGENTS.md
+/PRODUCT.md
+/DESIGN.md
+/capability.md
+/review_spec*/
+/ui_pages/
+
+# Generated browser-test evidence and caches.
+/artifacts/
+/test-results/
+/playwright-report/
+/docs/screenshots/
+__pycache__/
+*.pyc

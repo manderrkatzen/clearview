@@ -31,7 +31,7 @@ const base = process.env.BASE_URL || "http://localhost:4174";
       await page.evaluate(() => {
         window.groupRenderCalls=0;window.groupOriginalRender=render;
         render=function(...args){window.groupRenderCalls++;return window.groupOriginalRender(...args);};
-        window.groupStableNodes=[document.querySelector(".top"),document.querySelector(".issues"),document.querySelector(".main > .content"),document.querySelector(".group-tabs")];
+        window.groupStableNodes=[document.querySelector(".topbar"),document.querySelector(".issues"),document.querySelector(".main > .content"),document.querySelector(".group-tabs")];
       });
       const scroller = host.locator(":scope > [role=tabpanel] > .scroll-x");
       assert.equal(await scroller.locator("tbody tr").count(), 100);

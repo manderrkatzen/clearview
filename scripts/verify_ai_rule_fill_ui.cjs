@@ -78,7 +78,7 @@ const base = process.env.BASE_URL || "http://localhost:4174";
       await page.locator("#reviewRuleApproveAll").click();
       await page.waitForFunction(() => ReviewCore.data(ReviewCore.current()).preview?.patches.length === 2);
       assert.deepEqual(await page.evaluate(() => ReviewCore.data(ReviewCore.current()).preview.patches.map(patch => patch.rowId)), [1, 3]);
-      assert.match(await page.locator('[data-ui="review.lead"]').innerText(), /these 2 entries/);
+      assert.match(await page.locator('[data-ui="review.fix.scope"]').innerText(), /2 entries selected/);
       await page.locator('[data-ui="review.fix.ai.rule.preview"]').scrollIntoViewIfNeeded();
       await page.screenshot({ path: `/tmp/ai-rule-preview-${width}.png` });
       assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1));

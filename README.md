@@ -1,262 +1,130 @@
-# ClearData: AI Data Quality Copilot
+# ClearData
 
-[Open the live demo](https://clearview-data-quality-copilot.ritwikranjanpandey.workers.dev)
+**An analyst-led workspace for reviewing and cleaning CSV data.**
 
-ClearData is an AI-assisted, human-controlled workspace for reviewing and improving CSV data quality. It helps a business analyst identify issues, compare remediation options, assess analytical impact, and retain a reversible record of approved changes.
+[Open the live application](https://clearview-data-quality-copilot.ritwikranjanpandey.workers.dev)
 
-## Why It Exists
-
-Data cleaning should not be a black box. ClearData combines deterministic issue detection with context-aware remediation, visual impact analysis, and reversible human-approved corrections.
-
-The analyst remains in control: detected issues can be finalized, marked valid, or left unresolved. The original source is preserved.
+ClearData combines local data-quality checks, optional AI assistance, treatment previews, and reversible decisions. Findings are evidence for review—not automatic instructions to change the data.
 
 ## Workflow
 
 **Dataset → Explore → Review → Decisions → Report**
 
-1. Load a local CSV or select a bundled sample dataset.
-2. Inspect values in a spreadsheet-style view.
-3. Choose a finding from the searchable review queue.
-4. Review **Find → Compare → Fix** on one page: confirm value meanings, compare cohorts, and check the selected fix's before/after chart.
-5. Use **Advanced** for scope, interpretation, business impact, provenance, and copilot questions. Select **Approve** to validate a fresh exact preview and apply the fix, or leave the finding open.
-6. Review history, roll back changes, and export the cleaned dataset.
+1. **Dataset:** import a CSV or choose a bundled sample; inspect its column profile.
+2. **Explore:** browse the spreadsheet, highlighted values, and issue markers.
+3. **Review:** select a finding and move freely between **Explore**, **Fix**, and **Review** tabs. Inspect evidence, select a treatment, and approve its exact preview.
+4. **Decisions:** inspect recorded changes and Undo decisions.
+5. **Report:** export the working CSV, quality report, or decision log.
 
-## Features
+The original-data popup is available throughout Review and Decisions. It provides read-only source inspection while preserving the underlying draft, preview, and scroll position.
 
-### Try a bundled sample
+## Capabilities
 
-Choose **Try a sample dataset** and select **Healthcare patient visits**, **Sales orders**,
-**Marketing campaigns**, or **UI test sheet**. The first three samples contain 1,000 records;
-UI test sheet contains 306 records and exercises a broad range of review findings. In Explore, select a
-type-specific rail marker or highlighted cell to inspect its value and evidence.
-Off-screen findings are counted separately by issue type at each edge of the rail.
-For missing numerical values, review mean, median, or leaving the value missing in
-the treatment preview before approving an explicitly scoped decision.
+- **Data profiling:** completeness, distinct values, inferred types, and numerical distributions.
+- **Quality findings:** missing values and candidate tokens, outliers, duplicates, inconsistent labels, whitespace, format/type conflicts, mixed scales, invalid values, cross-column inconsistencies, leading zeros, combined values, and sensitive data.
+- **Scoped treatments:** constant and statistical fills, group-wise and similar-row estimates, label mappings, formatting, parsing, scaling, bounds capping, structural changes, masking, and row/column removal where supported.
+- **Explicit approval:** selecting a treatment computes a preview; applying it requires confirmation. Blocked rows and configured rule violations remain visible.
+- **Reversible history:** original values and row identities are retained. Undo replays the remaining approved decisions.
+- **Local projects:** explicitly save a workspace in browser storage, download a portable backup, or reuse rule definitions.
+- **Exports:** cleaned CSVs, optional fill-provenance columns, self-contained HTML/JSON quality reports, and CSV/JSON decision logs.
 
-The Dataset overview profiles completeness, distinct values, and numerical ranges.
-Local checks surface possible missing tokens (`NULL`, `N/A`, etc.), contextual
-sentinels, whitespace/category variants, number/date formats, duplicates, and
-outliers across arbitrary columns. Discovery never silently changes values.
+AI can suggest interpretations and treatments, but it does not apply changes. Its scores are model-assessed rankings, not calibrated probabilities. Local/manual review remains available without a configured provider.
 
-AI interpretation **starts automatically on import** using bounded, batched evidence.
-The highest-ranked suggestion appears first, with alternatives and assumptions;
-its score is a model-assessed rank, **not a calibrated probability**. Analysis can
-be cancelled, retried, or supplemented with context. Local/manual review remains
-available when AI is unavailable. Unknown, not applicable, and legitimate zero
-have separate decision semantics.
+## Try the samples
 
-Scoped treatments include missing normalization; constant/manual correction;
-mean, median, group median; whitespace/case normalization; exact mapping;
-number/date parsing; explicit scaling; bounds capping; and row removal. Duplicate
-review supports first/last/most-complete/manual survivors and complementary merges.
-Preview exposes blocked records and new configured-constraint violations.
-Original/working/proposed charts integrate approved decisions cumulatively.
+Select **Try a sample dataset** in the application:
 
-The new analyst-first visual system uses local typography, SVG finding icons,
-and a focused stage instead of an expanding control wall. See [DESIGN.md](DESIGN.md).
+| Sample | Records | Context |
+| --- | ---: | --- |
+| Healthcare patient visits | 1,000 | Clinical measurements and visits |
+| Sales orders | 1,000 | Orders, pricing, profitability, and delivery |
+| Marketing campaigns | 1,000 | Spend, conversions, and campaign performance |
 
-[Desktop review](docs/screenshots/review-desktop.png) ·
-[Mobile review](docs/screenshots/review-mobile.png)
+## Run locally
 
-These Playwright captures use synthetic data and a mocked AI interpretation;
-[capture provenance](docs/screenshots/README.md) is recorded alongside them.
-
-Blank cells are review findings, not automatic errors: fields such as an open
-opportunity's actual close date can legitimately be empty.
-
-- Local CSV upload plus healthcare, sales, marketing, and UI test sample datasets.
-- Spreadsheet-style inspection with highlighted issue cells.
-- Deterministic checks for missing values, category variants, format conflicts, cross-column rules, and numerical outliers.
-- Bounded AI requests for alternative remediation proposals.
-- Before-and-after impact previews.
-- Human approval, change history, and rollback.
-- Cleaned CSV export.
-- Downloadable self-contained HTML/JSON quality reports and CSV/JSON decision logs, including rationale and rollback events.
-- Exact-row and composite business-key duplicate review, with previews, conflict acknowledgement, and reversible removal.
-- Explicitly saved browser-local projects, portable JSON backups, and reusable review-rule libraries.
-- Declared schema checks for type, required values, numeric bounds, and allowed categories.
-- Configured sum/difference/product/ratio metric checks with explicit preview and approval of recalculation.
-
-## Projects, Rules, and Review Artifacts
-
-On **Dataset**, use **Save project** to save the current workspace in IndexedDB. **Saved projects** reopens saved data, original values, history, proposals, rules, and review state after refresh. **Download project backup** and **Import project backup** transfer that state between browsers/devices or origins. Saving is explicit; unsaved changes are not automatically persisted.
-
-This works with the existing Cloudflare static asset deployment and requires no new database binding or server-side upload. Storage is specific to the browser and site origin: localhost, a preview URL, and the deployed Worker have separate project libraries. Browser storage can be cleared; use backups for portable retention.
-
-On **Dataset**, expand **Definitions, business checks & manual corrections** for
-column policies, business relationships, schema/metrics, duplicate keys, and manual
-corrections. Duplicates use exact, case-sensitive comparison and skip blank business
-keys. Survivor policies are explicit. Complementary merges fill only blank survivor
-fields with one unambiguous group value; conflicting values need acknowledgement.
-
-**Schema / metric rules** configures expected types (`any`, `text`, `number`, `integer`, ISO `date`, `boolean`, `category`), required/nonblank status, numeric bounds, and allowed labels. Allowed labels are case-sensitive after trimming for validation; schema checks do not normalize stored labels. These definitions flag observations without changing them.
-
-Metric rules choose an existing target column, left/right numerical source columns, sum/difference/product/ratio, a result factor, decimal precision, and absolute tolerance. Examples include `profit = revenue − cost`, `revenue = quantity × unit_price`, `ROAS = revenue ÷ spend`, and a whole-percentage CTR using factor 100. Missing inputs and zero denominators become separate findings, not zero-valued estimates. Review the calculated/proposed values and explicitly approve recalculation; dependent metrics are not cascaded automatically.
-
-Use **Reusable rules** to save schema, metric, outlier, duplicate, column-policy, and
-relationship definitions. JSON import/export supports reuse. Applying definitions
-runs checks without treatments; missing columns, metric cycles, and invalid parameters
-are rejected before active configuration changes.
-
-On **Report**, download the quality report as HTML (printable to PDF through the browser) or JSON, and the decision log as JSON or CSV. The log retains approval and rollback events, timestamps, optional analyst rationale, value patches, and removed-row snapshots. Rollback events include actual resulting changes, which can differ from a simple reversal when later decisions overlap. These are review records rather than tamper-proof enterprise audit logs.
-
-## Local Development
-
-The local server defaults to Ollama:
+Use a current Node.js release with built-in `fetch` and `AbortSignal.timeout` support. There is no application build step or package installation required to serve the app.
 
 ```bash
 node server.js
 ```
 
-Open `http://localhost:4174`.
+Open **http://localhost:4174**.
 
-Configure local AI behavior with a non-committed `.env` file if needed. See `.env.example` for supported values. The server reads `process.env`; export the variables or use `node --env-file=.env server.js` on a supporting Node version.
+The local AI default is Ollama. See [`.env.example`](.env.example) for configuration. The server reads environment variables; it does not automatically load `.env`.
 
-Run the data-treatment and API regression checks with:
+On a Node version supporting environment files:
 
 ```bash
-node --test scripts/verify_quality.cjs scripts/verify_cleaning.cjs
+node --env-file=.env server.js
+```
+
+## Architecture
+
+The frontend uses vanilla JavaScript, HTML, and CSS. CSV parsing, profiling, previews, and treatment calculations run in the browser, with workers for background analysis. AI requests use a same-origin server API.
+
+| Area | Files |
+| --- | --- |
+| Application shell and shared state | `index.html`, `app.js` |
+| Spreadsheet and cell inspection | `spreadsheet.js`, `spreadsheet.css` |
+| Review components and issue modules | `review-core.js`, `review-components.js`, `review-page.js`, `issues/` |
+| Parsing, profiling, and treatment engines | `cleaning-engine.js`, `review-page-engine.js`, `profile-worker.js` |
+| Analytical comparisons and background work | `analysis-engine.js`, `analysis-worker.js`, `analytics.js`, `review-bands.js` |
+| Projects, rules, and exports | `workspace.js`, `capabilities-engine.js`, `capabilities.js` |
+| Shared presentation | `styles.css`, `design-system.css`, `review-page.css`, `review-reference.css` |
+| Local HTTP/API server | `server.js` |
+| Deployed API and asset routing | `src/worker.js` |
+| Shared AI validation and providers | `src/ai.cjs`, `src/review-ai.cjs` |
+| Additional Cloudflare Pages API handlers | `functions/api/ai/` |
+
+The browser scripts use shared globals and load in the order defined in `index.html`.
+
+## Verification
+
+### Engine and API regressions
+
+```bash
+node --test scripts/verify_quality.cjs scripts/verify_cleaning.cjs scripts/verify_review_page.cjs scripts/verify_missing_contract.cjs
 node --test scripts/verify_pattern.cjs
 node --test scripts/verify_analysis.cjs
 node --test scripts/verify_next_capabilities.cjs
 node scripts/verify_next_performance.cjs
 ```
 
-To make one real provider request through the configured Worker (or set `BASE_URL` to a local server), run the live OpenAI/Ollama smoke check:
+Run timing-sensitive performance checks separately from heavy browser or engine workloads.
 
-```bash
-node scripts/verify_ai_provider.cjs
-```
+### Browser checks
 
-This sends a synthetic, one-row fill request and verifies the provider returns a validated proposal. If Turnstile is enabled, provide a valid `TURNSTILE_TOKEN`.
-
-CSV import supports quoted multiline fields and rejects invalid headers or malformed quoting without replacing the current workspace. Numerical previews use the same rounded values as approval. Report counts distinguish approved decisions from actual modified rows and cells. Rollback preserves later approved values and refreshes findings.
-
-Outlier approval saves the displayed definition and treats only the explicit scope.
-Numerical fills have configurable precision; grouped estimates block populations
-without observations. Meaning, scope, rationale, patches, and removals are retained
-with the decision. Stale previews cannot be approved after data or treatment changes.
-
-### Playwright and Impeccable
-
-Install optional browser tooling separately from the dependency-free application,
-install Chromium/dependencies, run the local server, and point the runner at it:
+Install Playwright outside the application, install Chromium, and start the local server in another terminal:
 
 ```bash
 npm install --prefix /tmp/cleardata-tools playwright
 /tmp/cleardata-tools/node_modules/.bin/playwright install --with-deps chromium
 PLAYWRIGHT_MODULE=/tmp/cleardata-tools/node_modules/playwright node scripts/verify_ui.cjs
-PLAYWRIGHT_MODULE=/tmp/cleardata-tools/node_modules/playwright node scripts/verify_analytics_ui.cjs
-PLAYWRIGHT_MODULE=/tmp/cleardata-tools/node_modules/playwright node scripts/verify_value_review_ui.cjs
-PLAYWRIGHT_MODULE=/tmp/cleardata-tools/node_modules/playwright node scripts/verify_next_capabilities_ui.cjs
-PLAYWRIGHT_MODULE=/tmp/cleardata-tools/node_modules/playwright node scripts/verify_ui_consistency.cjs
-PLAYWRIGHT_MODULE=/tmp/cleardata-tools/node_modules/playwright node scripts/verify_group_tabs_ui.cjs
-PLAYWRIGHT_MODULE=/tmp/cleardata-tools/node_modules/playwright node scripts/verify_chart_clarity_ui.cjs
-PLAYWRIGHT_MODULE=/tmp/cleardata-tools/node_modules/playwright node scripts/verify_worksheet_peek_ui.cjs
 ```
 
-`BASE_URL` selects another server. `ARTIFACT_DIR` selects an existing screenshot
-directory. The runner mocks AI and checks six widths, five steps, keyboard navigation,
-local fonts, normalization, legitimate zero, blocked dates, manual correction,
-history/rollback/project restore, three samples, export, and cancellation.
+The UI runner covers the current review workflow, shell stability, original-data popup, sample distributions, chart interactions, and grouped row browsing. Provider replies are mocked; local calculations, approvals, Undo, and downloads are exercised against the real application.
 
-The analytical runner also checks desktop/mobile missingness comparisons, held
-comparisons, summary-only AI proposals, group-wise/KNN source traces, scoped
-approval/restore/rollback/export, and a responsive 50,000-row background worker.
+`ui_test_sheet.csv` is a debugging/test fixture. It is not listed in the application's sample chooser.
 
-### Missingness analysis and similar-row fills
+Additional focused checks are available for AI composers, per-row AI suggestions, long lists, and component consistency. Set `BASE_URL` to verify another running instance. Generated browser evidence belongs outside the committed source.
 
-Open a missing-value finding in **Review → Compare**. Comparison runs automatically;
-the main page shows a deterministic summary and the top three comparison charts.
-The existing numeric ranking uses Cliff’s delta; category/monthly comparisons use
-missing-rate gaps. **Hold similar by** compares within categorical groups or
-numeric quartile, fixed-width, or custom-edge bands, and is shared with Fix.
-An explicit no-pattern note appears only when at least three usable comparisons
-are all weak or absent. Fewer than five missing/present records is insufficient.
+`scripts/verify_ai_provider.cjs` is a separate, opt-in live-provider smoke check. It makes a real synthetic request and may require `TURNSTILE_TOKEN` when verification is enabled.
 
-In **Fix**, select **Median by [hold column]** or choose **KNN** in More fixes.
-The existing group-wise engine uses the shared hold and band settings. KNN uses scaled numerical distances and
-exact categorical matches, defaults to seven neighbours, and resolves ties by
-source order. Sparse groups widen where possible, then fall back to the global
-observed median. Token and sentinel meanings come from individual analyst
-decisions; no checkbox treats NULL/N/A/NA/- or zero as missing in bulk.
+## Deployment
 
-### Review value meanings one representation at a time
+The live application runs on Cloudflare Workers with static assets and a server-side AI API. See [DEPLOYMENT.md](DEPLOYMENT.md) for configuration and release steps.
 
-On import, deterministic column summaries send exact value counts, column name,
-declared meaning/units, distribution statistics, and dataset purpose to the AI.
-The interpretation response includes an independent missingness confidence and
-explanation for each representation. Zero children, negative temperatures,
-unknown tokens, and invalid values require different contextual judgments.
-Scores are model-assessed, not calibrated probabilities; advice never classifies.
+Only browser-delivered files listed in [`.assetsignore`](.assetsignore) enter the static asset bundle. Provider credentials stay server-side.
 
-Open a token or zero/negative finding to see its value chips in **Find**. Pick
-NULL, N/A, zero, or a negative value and select **Missing** or **Keep as valid**.
-This one-click decision records exact matches in reversible history without
-rewriting source values. Not-applicable and other interpretations live in
-**Advanced**. Confirmed missing representations feed Compare and Fix immediately;
-unconfirmed tokens do not enter physical fill scope. Legitimate zero stays observed.
+## Data and storage
 
-All representations are covered by bounded batches (at most ten groups per
-candidate and six candidates per request), with stable evidence IDs. Assessments
-appear as batches complete. Refresh analysis from Dataset, or ask a finding-level
-question in Advanced. Server and browser validation reject unknown
-IDs, duplicated evidence, missing coverage, and scores outside 0–1. The dedicated
-Playwright runner checks incremental delivery, contextual scores, individual
-decisions, legitimate zero, skipped negatives, treatment, and restore/rollback.
+- CSV processing and saved project storage are browser-local. Saved projects are specific to the browser and site origin; backups are the portable option.
+- AI features send bounded request-specific context to the configured provider. Depending on the operation, that can include selected values or confirmed row fields. Sensitive-data review remains local and uses masked examples.
+- Saving a project is explicit. Browser storage can be cleared, so download a backup for durable retention.
+- Original values remain available for inspection and Undo, including in project backups. Masking or coding a working column does not erase the preserved source.
+- A reviewed finding may be accepted unchanged. Blank cells, unusual values, and legitimate zero values have distinct meanings.
+- This project provides review records and reversible changes; it is not a tamper-proof audit system or a promise of anonymization.
 
-The preview lists each proposed value's actual source and KNN donor row IDs.
-Approved values, parameters, fallback counts, and the complete source trace are
-stored in decision history, project backups, and decision-log JSON. Rollback
-restores source values. Computations run in a reusable background worker;
-per-column parsed values, missing masks, sorted values, and repeated estimates
-are cached until data or rules change.
+## Typography
 
-**Explain top pattern with AI** sends at most three aggregate comparison summaries
-and existing held verdicts to `/api/ai/pattern`. Server validation bounds text,
-columns, operations, and parameters, and requires qualified language for partial
-or insufficient verdicts. **Review proposed treatment** configures a draft;
-the normal scoped preview and explicit approval are still required.
-
-See `NEXT_CAPABILITIES_CHANGE_SUMMARY.md` for robust Cliff’s delta/permutation
-evidence, observation-state consistency, affected/present and band lenses,
-transient treatment comparisons, saved KPIs, export flags, opt-in suggested rules,
-dependency follow-ups, expanded manual methods, and quality scorecards.
-
-Fixture note: the current sales sample confirms delivery-days/channel rates,
-quantity medians 9 vs 2 (12 vs 12 within Distributor), and channel-based fills
-4.3/4.5. `customer_tenure_months` now demonstrates no-pattern with independent
-latent tenure and gaps below eight months (seed 44, 121 gaps). Run
-`node scripts/generate_no_pattern_demo.cjs --write` to reproduce it while retaining
-the other sales fields. Robust effect thresholds were not weakened.
-
-Impeccable is installed in `.opencode/skills/impeccable`. Restart OpenCode to discover
-`/impeccable`. [PRODUCT.md](PRODUCT.md) records product truth and [DESIGN.md](DESIGN.md)
-records visual rules. Tool binaries and temporary captures are gitignored.
-
-## Public Deployment
-
-Cloudflare Workers serves the static site and runs `src/worker.js` for `/api/*` requests. The Worker calls OpenAI server-side and reads `OPENAI_API_KEY` only from a Cloudflare runtime secret. See [DEPLOYMENT.md](DEPLOYMENT.md) for the required Worker secrets.
-
-The Node, Worker, and alternative Pages handlers share proposal validation, response extraction, byte limits, provider timeouts, and process/isolate-local rate protection through `src/ai.cjs`. Rate protection is not a durable distributed quota. AI status indicates configuration, not a tested provider health check.
-
-Never commit API keys, `.env` files, or credential files. The included `.gitignore` excludes them.
-
-## Human-In-The-Loop AI
-
-Automatic interpretation sends capped value representations, counts, calculated
-statistics, column meaning, and rule context—not the entire CSV—to the server-side
-provider. Candidate/evidence IDs, allowed meanings, score bounds, and operations are
-validated. A suggested operation is advice: the analyst configures its parameters,
-scope, and exact preview before explicit approval. Approvals invalidate old AI
-evidence; refresh analysis for the working data when needed.
-
-## Portfolio Context
-
-ClearData demonstrates business analysis, data-quality reasoning, product workflow design, structured AI integration, and secure deployment practices. See [PROJECT_WRITEUP.md](PROJECT_WRITEUP.md) for the full project narrative.
-
-See [PRODUCT_REVIEW.md](PRODUCT_REVIEW.md) for the implementation-based usability
-assessment, cleaning-coverage gaps, and prioritized portfolio roadmap.
-
-See [CLEANING_ROADMAP.md](CLEANING_ROADMAP.md) for current coverage, remaining
-analytical limitations, and the deferred Excel discussion.
+Source Sans 3 is self-hosted under `fonts/`. Attribution and the SIL Open Font License are included in that directory.

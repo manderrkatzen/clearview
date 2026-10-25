@@ -10,6 +10,9 @@ const base = process.env.BASE_URL || "http://localhost:4174";
       page.on("pageerror", error => errors.push(error.message));
       await page.route("**/api/ai/**", route => route.fulfill({ status: route.request().method() === "POST" ? 503 : 200, json: { available: false, error: "not configured" } }));
       await page.goto(base);
+      await page.locator("#sampleCsv").click();
+      assert.equal(await page.locator("[data-sample]").count(), 3, "Only public sample datasets are offered");
+      assert.equal(await page.locator('[data-sample="ui_test_sheet.csv"]').count(), 0, "The debugging fixture stays out of the chooser");
       await page.evaluate(async () => {
         await document.fonts.ready;
         loadData(await (await fetch("ui_test_sheet.csv")).text(), "ui_test_sheet.csv");
