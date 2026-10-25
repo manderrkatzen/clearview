@@ -148,7 +148,16 @@ async function session(suite, { width = 1440, height = Number(process.env.ACCEPT
     fs.writeFileSync(path.join(directory, "results.json"), JSON.stringify(result, null, 2));
     await browser.close();
   }
-  try { await page.goto(base, { waitUntil: "domcontentloaded", timeout: 30000 }); await baseline(); }
+  try {
+    for (let attempt = 0; ; attempt++) {
+      try { await page.goto(base, { waitUntil: "domcontentloaded", timeout: 30000 }); break; }
+      catch (error) {
+        if (attempt >= 4 || !/net::ERR_CONNECTION_REFUSED|net::ERR_ABORTED/.test(error.message)) throw error;
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
+    }
+    await baseline();
+  }
   catch (error) { await close(error); throw error; }
   return { page, context, step, upload, navigate, issue, method, ready, download, snapshot, guard, baseline, close, directory, result };
 }
