@@ -26,8 +26,10 @@ const base = process.env.BASE_URL || "http://localhost:4174";
       assert.equal(await tabs.count(), 12);
       assert.equal(await host.locator("[data-group-show], [data-review-show-all]").count(), 0);
       const originalScope = await page.evaluate(() => ReviewCore.affected(ReviewCore.current()).map(row => row._row));
-      await page.waitForFunction(() => !ReviewCore.data(ReviewCore.current()).comparePending);
-      await page.waitForTimeout(200);
+      await page.waitForFunction(() => {
+        const data = ReviewCore.data(ReviewCore.current());
+        return !data.comparePending && data.assessmentRequested && ["ready", "error"].includes(data.aiStatus) && !renderingWorkspace && !workspaceRenderQueued;
+      });
       await page.evaluate(() => {
         window.groupRenderCalls=0;window.groupOriginalRender=render;
         render=function(...args){window.groupRenderCalls++;return window.groupOriginalRender(...args);};
@@ -64,7 +66,7 @@ const base = process.env.BASE_URL || "http://localhost:4174";
       await page.waitForFunction(() => !ReviewCore.data(ReviewCore.current()).pending);
       await page.locator("[data-review-tab=explore]").click();
       assert.equal(await scroller.evaluate(element => Math.round(element.scrollTop)), 200, "Stage changes preserve group scroll");
-      if (width === 390) {
+      if (width === 390 && browser.browserType().name() === "chromium") {
         const strip = host.locator(":scope > [role=tablist]");
         await strip.scrollIntoViewIfNeeded();
         await strip.evaluate(element => { element.scrollLeft = 0; });
@@ -75,6 +77,8 @@ const base = process.env.BASE_URL || "http://localhost:4174";
         await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
         await page.waitForFunction(() => document.querySelector('[data-group-browser="review.explore.missing.sheet"] > [role=tablist]').scrollLeft > 0);
         await cdp.detach();
+      } else if (width === 390) {
+        console.log(`SKIP ${browser.browserType().name()}: Chromium CDP touch-swipe synthesis; portable keyboard/group assertions remain enabled`);
       }
       for (const mode of ["quantiles", "fixedWidth", "custom"]) {
         await page.evaluate(mode => {

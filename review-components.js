@@ -7,6 +7,8 @@ var ReviewComponents = (() => {
   const noun=()=>/healthcare|patient|visit/i.test(state.fileName)||state.headers.some(column=>/patient|visit/i.test(column))?"patients":/marketing|campaign/i.test(state.fileName)?"campaigns":/sales|order/i.test(state.fileName)||state.headers.some(column=>/order_id|order_date|revenue|sales_rep/i.test(column))?"orders":state.headers.some(column=>/campaign|impression|click_through_rate/i.test(column))?"campaigns":"entries";
   const count=(n,unit=noun())=>{const amount=Number(n),singular=unit.endsWith("ies")?`${unit.slice(0,-3)}y`:unit.endsWith("s")?unit.slice(0,-1):unit;return `${amount.toLocaleString()} ${amount===1?singular:unit}`;};
   const rowLabel=id=>{const row=[...(state.rows||[]),...(state.allRows||[]),...(state.original||[])].find(item=>item._row===Number(id));return row?.row_id??id;};
+  const rowName=id=>{const label=String(rowLabel(id));return ReviewCore.containsSensitiveText(label)?`source row ${id}`:`row ${label}`;};
+  const selectionIds=new WeakMap();let nextSelectionId=0;
   const short=value=>plain(value);
   // C1 / LAY-02, LAY-18, LAY-50: one truthful question, decision or outcome.
   function lead(title,sub=""){return `<p class="lead" data-ui="review.lead">${text(title)}</p>${sub?`<p class="lead-sub" data-ui="review.lead.sub">${sub}</p>`:""}`;}
@@ -15,11 +17,17 @@ var ReviewComponents = (() => {
   // C3 / LAY-13, LAY-14: identical tracks for every selected value, shape, type, group or violation.
   function selection(items,{ui="review.select",total="",ai="",empty="No values need selection."}={}){ // CORE-58: long value lists scroll locally even after Show all.
     const session=ReviewCore.current()?ReviewCore.data(ReviewCore.current()):{},visible=session.expandedLists?.[ui]?items:items.slice(0,200);
+    if(!selectionIds.has(session))selectionIds.set(session,new Map());
+    const identities=selectionIds.get(session);
     const rows=visible.map(item=>{
       const selected=item.attrs?.["aria-pressed"]===true||String(item.attrs?.["aria-pressed"])==="true"||item.control?.includes("checked"),control=item.control?.includes("<input")?item.control:`<span class="chk${selected?" on":""}" aria-hidden="true"></span>`,value=item.valueHtml??(item.raw===false?text(item.value):`<span class="mono">${escapeHtml(item.value)}</span>`),body=`<span class="control">${control}</span><span class="selection-value">${value}${item.extra?`<span class="selection-context">${item.extra}</span>`:""}</span><span class="r num">${escapeHtml(item.count??"")}</span><span class="r num">${escapeHtml(item.share??"")}</span><span class="m">${item.meta||""}</span>`;
-      const attributes=attrs(Object.fromEntries(Object.entries({...item.attrs,"data-ui":item.ui||ui}).filter(([key])=>key!=="class")));
+      const dataIdentity=Object.entries(item.attrs||{}).filter(([key])=>key.startsWith("data-"));
+      const identity=JSON.stringify([ui,item.key??(dataIdentity.length?dataIdentity:item.value)]);
+      if(!identities.has(identity))identities.set(identity,`review-selection-${++nextSelectionId}`);
+      const attributes=attrs(Object.fromEntries(Object.entries({id:identities.get(identity),...item.attrs,"data-ui":item.ui||ui}).filter(([key])=>key!=="class")));
       if(item.details)return `<details class="grp${item.open?" open":""}" ${item.open?"open":""}${attributes}><summary class="ghead">${body}</summary><div class="body-rows">${item.details}</div></details>`;
-      return `<div class="vrow ${item.className||item.attrs?.class||""}" role="${item.button?"button":"row"}" tabindex="${item.button?"0":"-1"}"${attributes}>${body}</div>`;
+      const tag=item.button?"button":"div";
+      return `<${tag}${item.button?' type="button"':""} class="vrow ${item.className||item.attrs?.class||""}"${attributes}>${body}</${tag}>`;
     }).join("");
     const scrollRegion=items.length>6||Boolean(session.expandedLists?.[ui]);
     return `<div class="vals${ai?"":" solo"}" data-ui="review.select"><div><div class="card" data-ui="${ui}" ${scrollRegion?'tabindex="0"':""} role="region" aria-label="Selectable review values">${rows||`<p class="meta">${text(empty)}</p>`}</div>${items.length>visible.length?`<button class="link" data-review-show-all="${ui}">Show all ${items.length} values</button>`:""}</div>${ai?`<aside class="review-assistance">${ai}</aside>`:""}</div>`;
@@ -167,5 +175,5 @@ var ReviewComponents = (() => {
   }
   function fix(issue,content){const change=content.change?`<div class="scroll-x" data-ui="review.fix.preview">${content.change}</div>`:"";return `<div class="review-scope-line" data-ui="review.fix.scope"><span><b>${count(ReviewCore.exploreScope(issue).length)}</b> selected</span><button class="link" id="reviewReminder">Edit selection</button></div>${content.sub?`<p class="review-context" role="status">${text(content.sub)}</p>`:""}${section("Treatment",content.options,"options")}${section("Preview",change,"change")}${footer({links:`<button class="link" id="reviewRows">Affected rows</button><button class="link" id="reviewAddNote">Add note</button><span class="meta" id="reviewApplyReason" data-ui="review.fix.apply-reason" role="status" hidden></span>`,label:content.action,id:"reviewApply",action:"apply"})}`;}
   function review(issue,content){return `${section("",content.change,"numbers")}${section("Changed rows",content.examples,"examples")}${content.metadata||""}<footer class="foot" data-ui="review.footer"><div class="in"><span class="sum"><button class="link" id="reviewUndo" data-ui="review.review.undo">Undo decision</button></span><button class="btn" id="reviewNext" data-ui="review.footer.primary">Next issue</button></div></footer>`;}
-  return {plain,text,attrs,noun,count,rowLabel,short,lead,headline,selection,table,groupedTable,groupBrowser,beginGroupedRender,bindGroupBrowsers,toolbar,change,changedLabels,preferred,options,footer,explore,fix,review,actionLabel};
+  return {plain,text,attrs,noun,count,rowLabel,rowName,short,lead,headline,selection,table,groupedTable,groupBrowser,beginGroupedRender,bindGroupBrowsers,toolbar,change,changedLabels,preferred,options,footer,explore,fix,review,actionLabel};
 })();

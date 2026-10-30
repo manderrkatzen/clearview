@@ -92,7 +92,7 @@ function decorateDecisionHistory() {
   document.querySelectorAll(".change-card").forEach((card, index) => {
     const change = state.changes[index]; if (!change?.interpretation || !card.insertAdjacentHTML) return;
     (card.querySelector(".decision-details") || card).insertAdjacentHTML("beforeend", `<p class="decision-interpretation"><b>Interpretation:</b> ${escapeHtml(change.interpretation.replaceAll("_", " "))}${change.treatment?.scope?.mode === "condition" ? ` · ${escapeHtml(change.treatment.scope.column)} ${escapeHtml(change.treatment.scope.operator)} ${escapeHtml(change.treatment.scope.value)}` : ""}</p>`);
-    if (typeof analyticalFillMetadataHtml === "function" && change.treatment?.fillMetadata) card.insertAdjacentHTML("beforeend", analyticalFillMetadataHtml(change.treatment.fillMetadata, true));
+    if (typeof analyticalFillMetadataHtml === "function" && change.treatment?.fillMetadata) card.insertAdjacentHTML("beforeend", analyticalFillMetadataHtml(change.treatment.fillMetadata, true, change.issue.column));
   });
 }
 function enhanceDatasetScreen() {

@@ -3,8 +3,8 @@
 :where(#screen.reference-screen) {
   --bg:var(--paper); --surface:var(--panel); --ink-2:var(--muted); --ink-3:var(--muted);
   --line-2:#EEF0F3; --accent:var(--blue); --accent-soft:var(--blue-soft); --gap:#E07B39;
-  --gap-soft:#FCEFE6; --before:#C9CFD8; --ok:#1F7A4D; --ok-soft:#E7F4EC;
-  --warn:#A65F00; --warn-soft:#FBF1DE; --bad:#B42318; --bad-soft:#FDECEC; --neutral-soft:#F0F2F5;
+  --gap-soft:#FCEFE6; --gap-ink:#A64B0C; --before:#C9CFD8; --ok:#1F7A4D; --ok-soft:#E7F4EC;
+  --warn:var(--amber); --warn-soft:#FBF1DE; --bad:#B42318; --bad-soft:#FDECEC; --neutral-soft:#F0F2F5;
   --r:8px; --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s5:24px; --s6:32px; --s7:48px; --foot-h:72px;
   color:var(--ink); font:15px/1.5 var(--font-ui);
   .mono { font-family:ui-monospace,monospace; font-size:13px; }
@@ -73,7 +73,7 @@
   td { padding:7px var(--s4); border-bottom:1px solid var(--line-2); white-space:nowrap; }
   tr:last-child td { border-bottom:0; }
   td.r,th.r { text-align:right; }
-  td.gap { color:var(--gap); background:var(--gap-soft); font-weight:600; }
+  td.gap { color:var(--gap-ink); background:var(--gap-soft); font-weight:600; }
   td.new { color:var(--accent); font-weight:600; }
   td.old { color:var(--ink-3); text-decoration:line-through; }
   .grp { border-top:1px solid var(--line-2); }

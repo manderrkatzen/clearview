@@ -389,6 +389,10 @@ body.ui-pages-active .review-assistance { padding:0; color:var(--muted); font-si
 body.ui-pages-active .review-assistance p { margin:0 0 8px; }
 body.ui-pages-active .review-assistance .link { font-size:13px; margin-inline-end:16px; }
 body.ui-pages-active .selection-value { min-width:0; overflow-wrap:anywhere; }
+body.ui-pages-active button.vrow { width:100%; border:0; border-top:1px solid var(--line-2); border-radius:0; background:var(--surface); color:inherit; text-align:left; }
+body.ui-pages-active button.vrow:first-child { border-top:0; }
+body.ui-pages-active button.vrow:focus-visible { outline:3px solid var(--blue); outline-offset:-3px; }
+body.ui-pages-active .vrow:not(button) { cursor:default; }
 body.ui-pages-active .selection-context { display:block; margin-top:4px; color:var(--muted); font:13px/1.5 var(--font-ui); }
 body.ui-pages-active .selection-value > .mono { overflow-wrap:anywhere; white-space:normal; }
 body.ui-pages-active .review-scope-line { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px 20px; margin:0 0 24px; color:var(--muted); font-size:14px; }

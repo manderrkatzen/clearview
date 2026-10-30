@@ -116,12 +116,12 @@ Run timing-sensitive checks separately from heavy workloads.
 For browser checks, start the local server in another terminal:
 
 ```bash
-npm install --prefix /tmp/cleardata-tools playwright
+npm install --prefix /tmp/cleardata-tools playwright @axe-core/playwright
 /tmp/cleardata-tools/node_modules/.bin/playwright install --with-deps chromium
-PLAYWRIGHT_MODULE=/tmp/cleardata-tools/node_modules/playwright node scripts/verify_ui.cjs
+PLAYWRIGHT_MODULE=/tmp/cleardata-tools/node_modules/playwright AXE_PLAYWRIGHT_MODULE=/tmp/cleardata-tools/node_modules/@axe-core/playwright node scripts/verify_ui.cjs
 ```
 
-Set `BASE_URL` to target another running instance. `ui_test_sheet.csv` is a debugging fixture and is not offered in the public sample chooser.
+Use Node.js 22.12 or newer for the current accessibility-test tooling. Set `BASE_URL` to target another running instance and `BROWSER` to select an engine in browser-neutral suites. `scripts/verify_audit_regressions_ui.cjs` covers decision-card containment, marker overflow, selection accessibility, contrast, and keyboard scrolling. `ui_test_sheet.csv` is a debugging fixture and is not offered in the public sample chooser.
 
 `scripts/verify_ai_provider.cjs` makes a real synthetic provider request. Turnstile-enabled instances may require `TURNSTILE_TOKEN`.
 

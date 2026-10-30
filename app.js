@@ -242,6 +242,7 @@ function render() {
   if (renderingWorkspace) { workspaceRenderQueued = true; return; }
   renderingWorkspace = true;
   try {
+    if (state.screen !== "view" && typeof window !== "undefined") window.sheetCleanup?.();
     if (state.screen !== "issues" && typeof restoreReviewReferenceShell === "function") restoreReviewReferenceShell();
     refreshChrome();
     document.querySelectorAll(".nav-link").forEach((button) => button.classList.toggle("active", button.dataset.screen === state.screen));

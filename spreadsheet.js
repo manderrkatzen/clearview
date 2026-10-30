@@ -107,6 +107,7 @@ function sheetInspection(item, row) {
 
 // Row markers follow the viewport; off-screen findings collect by type at either end.
 function renderSpreadsheet() {
+  window.sheetCleanup?.();
   $("#topEyebrow").textContent = "SPREADSHEET VIEW";
   const flags = new Map(), rowIssues = new Map();
   state.issues.filter((item) => item.status === "open").forEach((item) => item.rows.forEach((row) => {
@@ -120,15 +121,48 @@ function renderSpreadsheet() {
   const types = Object.entries(sheetIssueTypes);
   const inferred = new Map(state.headers.map((column) => [column, inferType(column)]));
   screen.innerHTML = `<section class="view-toolbar"><input id="search" aria-label="Search values" placeholder="Search values" value="${escapeHtml(state.query)}"><label class="check"><input type="checkbox" id="flaggedFilter" ${state.flaggedOnly ? "checked" : ""}> Flagged rows only</label><span>${rows.length.toLocaleString()} of ${state.rows.length.toLocaleString()} rows</span></section>
-    <div class="sheet-legend">${types.map(([type, meta]) => `<span><b class="sheet-type sheet-${type}">${meta.symbol}</b> ${meta.label}</span>`).join("")}<small>Select a marker or highlighted cell. Edge counts represent off-screen findings by type.</small></div>
+    <div class="sheet-legend">${types.map(([type, meta]) => `<span><b class="sheet-type sheet-${type}">${meta.symbol}</b> ${meta.label}</span>`).join("")}<small>Select a marker or highlighted cell. Edge counts include findings outside the fully visible row area; +N opens more finding types.</small></div>
     <section class="sheet-grid"><div class="table-wrap" id="sheetViewport"><table><thead><tr><th class="row-no">#</th>${state.headers.map((header) => `<th>${escapeHtml(header)}<small>${inferred.get(header)}</small></th>`).join("")}</tr></thead><tbody>${rows.map((row) => `<tr data-sheet-row="${row._row}"><td class="row-no">${row._row}</td>${state.headers.map((column, index) => {
       const findings = flags.get(`${row._row}:${column}`) || [];
       const type = findings.length ? sheetIssueType(findings[0]) : "";
       return `<td ${findings.length ? `class="flagged sheet-${type}" tabindex="0" role="button" data-cell-row="${row._row}" data-cell-column="${index}" aria-label="${escapeHtml(`${column}, row ${row._row}: ${findings.map((item) => item.label).join(", ")}`)}"` : ""}>${escapeHtml(row[column])}${findings.length ? `<i>${[...new Set(findings.map((item) => sheetIssueTypes[sheetIssueType(item)].symbol))].join(" ")}</i>` : ""}</td>`;
-    }).join("")}</tr>`).join("")}</tbody></table></div><aside class="sheet-rail" id="sheetRail" aria-label="Row findings"></aside></section><section id="sheetDetails" class="sheet-details" aria-live="polite" hidden></section>`;
-  const viewport = $("#sheetViewport"), rail = $("#sheetRail");
+    }).join("")}</tr>`).join("")}</tbody></table></div><aside class="sheet-rail" id="sheetRail" aria-label="Row findings"></aside><div class="sheet-footer" aria-hidden="true"></div></section><div id="sheetMarkerPopover" class="sheet-marker-popover" role="dialog" aria-label="More spreadsheet findings" hidden></div><div id="sheetMarkerTooltip" class="sheet-marker-tooltip" role="tooltip" hidden></div><section id="sheetDetails" class="sheet-details" aria-live="polite" hidden></section>`;
+  const viewport = $("#sheetViewport"), rail = $("#sheetRail"), popup = $("#sheetMarkerPopover"), tooltip = $("#sheetMarkerTooltip"), listeners = new AbortController();
   const elements = [...viewport.querySelectorAll("[data-sheet-row]")];
-  let selected = null;
+  let selected = null, targets = new Map(), overflow = new Map(), popupKey = null, popupOpener = null, tooltipOwner = null;
+  const hideTooltip = () => { tooltip.hidden = true; tooltipOwner?.removeAttribute("aria-describedby"); tooltipOwner = null; };
+  const closePopover = (restore = false) => {
+    const opener = popupOpener;
+    popup.hidden = true; popupKey = null; popupOpener = null;
+    opener?.setAttribute("aria-expanded", "false");
+    if (restore && opener?.isConnected) opener.focus({ preventScroll: true });
+  };
+  const positionFloating = (panel, anchor) => {
+    panel.hidden = false;
+    const box = anchor.getBoundingClientRect(), size = panel.getBoundingClientRect();
+    panel.style.left = `${Math.max(12, Math.min(box.right - size.width, innerWidth - size.width - 12))}px`;
+    panel.style.top = `${box.bottom + size.height + 8 <= innerHeight ? box.bottom + 6 : Math.max(12, box.top - size.height - 6)}px`;
+  };
+  const focusMarker = key => {
+    const button = [...rail.querySelectorAll("button[data-marker]:not([hidden])")].find(element => element.dataset.marker === key);
+    const group = key.split(":")[0], more = [...rail.querySelectorAll("[data-marker-overflow]")].find(element => element.dataset.markerOverflow === group && !element.hidden);
+    (button || more)?.focus({ preventScroll: true });
+  };
+  const markerHtml = (marker, detailed = false) => `<button type="button" class="${detailed ? "sheet-marker-choice" : "sheet-bubble"} sheet-${marker.type}${marker.active ? " selected" : ""}" data-marker="${marker.key}" data-finding-count="${marker.count}" aria-label="${escapeHtml(marker.label)}" aria-pressed="${Boolean(marker.active)}">${marker.edge ? `<span class="sheet-direction" aria-hidden="true">${marker.edge === "above" ? "↑" : "↓"}</span>` : ""}${marker.meta.symbol}${detailed ? `<span>${escapeHtml(marker.meta.label)}</span>` : ""}${detailed || marker.edge || marker.count > 1 ? `<small>${marker.count.toLocaleString()}</small>` : ""}</button>`;
+  const openPopover = button => {
+    const key = button.dataset.markerOverflow, markers = overflow.get(key);
+    if (!markers?.length) return;
+    if (popupKey === key) { closePopover(true); return; }
+    closePopover(); hideTooltip(); popupKey = key; popupOpener = button;
+    button.setAttribute("aria-expanded", "true");
+    popup.innerHTML = `<header><strong>More findings</strong><button type="button" class="ghost" data-close-markers aria-label="Close more spreadsheet findings">Close</button></header><div class="sheet-marker-options">${markers.map(marker => markerHtml(marker, true)).join("")}</div>`;
+    positionFloating(popup, button);
+    popup.querySelector("[data-marker]")?.focus({ preventScroll: true });
+  };
+  const centerRow = element => {
+    const box = viewport.getBoundingClientRect(), header = viewport.querySelector("thead").getBoundingClientRect().height, row = element.getBoundingClientRect();
+    viewport.scrollTop += row.top + row.height / 2 - box.top - header - (viewport.clientHeight - header) / 2;
+  };
   const showDetails = (rowId, issueId) => {
     const findings = rowIssues.get(rowId) || [];
     const item = findings.find((entry) => entry.id === issueId) || findings[0];
@@ -158,45 +192,98 @@ function renderSpreadsheet() {
   };
   const marked = elements.filter((element) => rowIssues.has(Number(element.dataset.sheetRow)));
   const updateMarkers = () => {
-    const box = viewport.getBoundingClientRect();
+    if (!viewport.isConnected) return;
+    const box = viewport.getBoundingClientRect(), railBox = rail.getBoundingClientRect();
     const header = viewport.querySelector("thead").getBoundingClientRect().height;
+    const clearance = (parseFloat(getComputedStyle(rail).getPropertyValue("--sheet-marker-size")) || 28) / 2 + 4;
+    const focused = document.activeElement?.dataset.marker, focusedOverflow = document.activeElement?.dataset.markerOverflow || (popup.contains(document.activeElement) ? popupKey : null);
+    closePopover(); hideTooltip();
     const groups = new Map();
     marked.forEach((element) => {
       const rect = element.getBoundingClientRect(), rowId = Number(element.dataset.sheetRow);
-      const y = rect.top - box.top + rect.height / 2;
-      const edge = rect.bottom <= box.top + header ? "above" : rect.top >= box.top + viewport.clientHeight ? "below" : null;
+      const y = rect.top + rect.height / 2 - box.top;
+      const edge = y < header + clearance ? "above" : y > viewport.clientHeight - clearance ? "below" : null;
       const key = edge || `row-${rowId}`;
-      if (!groups.has(key)) groups.set(key, { edge, position: edge === "above" ? header / 2 : edge === "below" ? viewport.clientHeight - 15 : y, entries: [] });
+      if (!groups.has(key)) groups.set(key, { edge, position: edge === "above" ? header / 2 : edge === "below" ? (box.bottom - railBox.top + rail.clientHeight) / 2 : y + box.top - railBox.top, entries: [] });
       rowIssues.get(rowId).forEach((item) => groups.get(key).entries.push({ rowId, item, element }));
     });
-    const focused = rail.querySelector(":focus")?.dataset.marker;
-    const targets = new Map();
-    rail.innerHTML = [...groups].map(([key, group]) => `<div class="sheet-marker-cluster ${group.edge ? "sheet-edge" : ""}" style="top:${group.position}px">${types.map(([type, meta]) => {
-      const entries = group.entries.filter((entry) => sheetIssueType(entry.item) === type);
-      if (!entries.length) return "";
-      const target = group.edge === "above" ? entries.at(-1) : entries[0];
-      const marker = `${key}:${type}`;
-      targets.set(marker, target);
-      const label = group.edge ? `${meta.label}: ${entries.length} findings ${group.edge} the viewport. Go to row ${target.rowId}.` : `${entries.map((entry) => entry.item.label).join("; ")} · Row ${target.rowId}`;
-      const active = selected && entries.some((entry) => entry.rowId === selected.rowId && entry.item.id === selected.issueId);
-      return `<button class="sheet-bubble sheet-${type} ${active ? "selected" : ""}" data-marker="${marker}" title="${escapeHtml(label)}" aria-label="${escapeHtml(label)}" aria-pressed="${Boolean(active)}">${group.edge ? `<span class="sheet-direction">${group.edge === "above" ? "↑" : "↓"}</span>` : ""}${meta.symbol}${group.edge || entries.length > 1 ? `<small>${entries.length}</small>` : ""}<span class="sheet-marker-label">${escapeHtml(label)}</span></button>`;
-    }).join("")}</div>`).join("");
-    rail.querySelectorAll("[data-marker]").forEach((button) => button.onclick = () => {
-      const target = targets.get(button.dataset.marker);
-      if (groups.get(button.dataset.marker.split(":")[0]).edge) viewport.scrollTop += target.element.getBoundingClientRect().top - viewport.getBoundingClientRect().top - viewport.clientHeight / 2;
-      showDetails(target.rowId, target.item.id);
-    });
-    if (focused) [...rail.querySelectorAll("[data-marker]")].find((button) => button.dataset.marker === focused)?.focus({ preventScroll: true });
+    targets = new Map(); overflow = new Map();
+    rail.innerHTML = [...groups].map(([key, group]) => {
+      const markers = types.flatMap(([type, meta]) => {
+        const entries = group.entries.filter(entry => sheetIssueType(entry.item) === type);
+        if (!entries.length) return [];
+        const target = group.edge === "above" ? entries.at(-1) : entries[0], markerKey = `${key}:${type}`;
+        const label = group.edge ? `${meta.label}: ${entries.length} findings ${group.edge} the fully visible row area. Go to row ${target.rowId}.` : `${entries.map(entry => entry.item.label).join("; ")} · Row ${target.rowId}`;
+        const marker = { ...target, key: markerKey, type, meta, edge: group.edge, count: entries.length, label, active: selected && entries.some(entry => entry.rowId === selected.rowId && entry.item.id === selected.issueId) };
+        targets.set(markerKey, marker); return [marker];
+      });
+      group.markers = markers;
+      return `<div class="sheet-marker-cluster${group.edge ? " sheet-edge" : ""}" data-marker-group="${key}" style="top:${group.position}px">${markers.map(marker => markerHtml(marker)).join("")}<button type="button" class="sheet-bubble sheet-more" data-marker-overflow="${key}" aria-haspopup="dialog" aria-controls="sheetMarkerPopover" aria-expanded="false">+${markers.length}</button></div>`;
+    }).join("");
+    for (const cluster of rail.children) {
+      const key = cluster.dataset.markerGroup, group = groups.get(key), buttons = [...cluster.querySelectorAll("[data-marker]")], more = cluster.querySelector("[data-marker-overflow]"), gap = parseFloat(getComputedStyle(cluster).columnGap) || 0;
+      const widths = buttons.map(button => button.getBoundingClientRect().width), total = widths.reduce((sum, width) => sum + width, 0) + gap * Math.max(0, buttons.length - 1);
+      if (total <= cluster.clientWidth) { more.hidden = true; continue; }
+      const moreWidth = more.getBoundingClientRect().width;
+      let count = 0, used = 0;
+      while (count < buttons.length && used + widths[count] + gap * (count + 1) + moreWidth <= cluster.clientWidth) used += widths[count++];
+      buttons.slice(count).forEach(button => { button.hidden = true; });
+      const hidden = group.markers.slice(count); overflow.set(key, hidden);
+      more.textContent = `${group.edge === "above" ? "↑ " : group.edge === "below" ? "↓ " : ""}+${hidden.length}`;
+      more.setAttribute("aria-label", `${hidden.length} more finding types ${group.edge || `in row ${group.markers[0].rowId}`}${hidden.some(marker => marker.active) ? "; includes selected finding" : ""}`);
+      more.classList.toggle("selected", hidden.some(marker => marker.active));
+    }
+    if (focused) focusMarker(focused);
+    else if (focusedOverflow) {
+      const button = [...rail.querySelectorAll("[data-marker-overflow]")].find(element => element.dataset.markerOverflow === focusedOverflow && !element.hidden);
+      (button || rail.querySelector(`[data-marker-group="${focusedOverflow}"] [data-marker]:not([hidden])`))?.focus({ preventScroll: true });
+    }
   };
+  const activateMarker = key => {
+    const marker = targets.get(key); if (!marker) return;
+    closePopover(); hideTooltip();
+    if (marker.edge) centerRow(marker.element);
+    showDetails(marker.rowId, marker.item.id);
+    focusMarker(`row-${marker.rowId}:${marker.type}`);
+  };
+  rail.addEventListener("click", event => {
+    const button = event.target.closest("button"); if (!button) return;
+    if (button.dataset.marker) activateMarker(button.dataset.marker);
+    else if (button.dataset.markerOverflow) openPopover(button);
+  }, { signal: listeners.signal });
+  popup.addEventListener("click", event => {
+    const button = event.target.closest("button");
+    if (button?.hasAttribute("data-close-markers")) closePopover(true);
+    else if (button?.dataset.marker) activateMarker(button.dataset.marker);
+  }, { signal: listeners.signal });
+  const revealTooltip = event => {
+    const button = event.target.closest("button[data-marker]"); if (!button || !popup.hidden) return;
+    const marker = targets.get(button.dataset.marker); if (!marker) return;
+    hideTooltip(); tooltipOwner = button; tooltip.textContent = marker.label;
+    button.setAttribute("aria-describedby", tooltip.id); positionFloating(tooltip, button);
+  };
+  rail.addEventListener("pointerover", revealTooltip, { signal: listeners.signal });
+  rail.addEventListener("focusin", revealTooltip, { signal: listeners.signal });
+  rail.addEventListener("pointerout", event => { if (!event.target.closest("button[data-marker]")?.contains(event.relatedTarget)) hideTooltip(); }, { signal: listeners.signal });
+  rail.addEventListener("focusout", hideTooltip, { signal: listeners.signal });
+  document.addEventListener("keydown", event => {
+    if (event.key !== "Escape") return;
+    hideTooltip();
+    if (!popup.hidden) { event.preventDefault(); event.stopPropagation(); closePopover(true); }
+  }, { signal: listeners.signal });
+  document.addEventListener("pointerdown", event => { if (!popup.hidden && !popup.contains(event.target) && !popupOpener?.contains(event.target)) closePopover(); }, { signal: listeners.signal });
+  popup.addEventListener("focusout", event => { if (!popup.contains(event.relatedTarget) && event.relatedTarget !== popupOpener) closePopover(); }, { signal: listeners.signal });
   viewport.querySelectorAll("[data-cell-row]").forEach((cell) => {
     cell.onclick = () => showDetails(Number(cell.dataset.cellRow), flags.get(`${cell.dataset.cellRow}:${state.headers[Number(cell.dataset.cellColumn)]}`)[0].id);
     cell.onkeydown = (event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); cell.click(); } };
   });
-  let frame;
-  viewport.addEventListener("scroll", () => { cancelAnimationFrame(frame); frame = requestAnimationFrame(updateMarkers); });
+  const queueMarkers = () => { if (!viewport.isConnected || listeners.signal.aborted) return; cancelAnimationFrame(window.sheetMarkerFrame); window.sheetMarkerFrame = requestAnimationFrame(() => { window.sheetMarkerFrame = 0; updateMarkers(); }); };
+  viewport.addEventListener("scroll", () => { closePopover(); hideTooltip(); queueMarkers(); }, { signal: listeners.signal });
+  window.addEventListener("scroll", () => { closePopover(); hideTooltip(); }, { signal: listeners.signal });
   if (window.sheetResizeObserver) window.sheetResizeObserver.disconnect();
-  window.sheetResizeObserver = new ResizeObserver(updateMarkers);
+  window.sheetResizeObserver = new ResizeObserver(queueMarkers);
   window.sheetResizeObserver.observe(viewport);
+  window.sheetCleanup = () => { listeners.abort(); cancelAnimationFrame(window.sheetMarkerFrame); window.sheetMarkerFrame = 0; window.sheetResizeObserver?.disconnect(); window.sheetResizeObserver = null; closePopover(); hideTooltip(); window.sheetCleanup = null; };
   updateMarkers();
   if (state.locateRow != null) {
     const rowId = state.locateRow;
@@ -204,7 +291,7 @@ function renderSpreadsheet() {
     const target = elements.find((element) => Number(element.dataset.sheetRow) === rowId);
     if (target) {
       target.classList.add("sheet-selected-row");
-      viewport.scrollTop += target.getBoundingClientRect().top - viewport.getBoundingClientRect().top - viewport.clientHeight / 2;
+      centerRow(target);
       if (rowIssues.has(rowId)) showDetails(rowId);
       updateMarkers();
     }

@@ -10,6 +10,7 @@ const suites = [
   "verify_feature_usage_ui.cjs",
   "verify_issue_usage_ui.cjs",
   "verify_async_stability_ui.cjs",
+  "verify_audit_regressions_ui.cjs",
 ];
 for (const suite of suites) {
   const result = spawnSync(process.execPath, [require.resolve(`./${suite}`)], { stdio: "inherit", env: process.env });

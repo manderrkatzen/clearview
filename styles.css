@@ -42,8 +42,8 @@ th, td { text-align: left; border-bottom: 1px solid var(--line); }
 .coverage-note { margin: 20px 0; }
 .table-wrap { overflow: auto; }
 /* CORE-63: decision history stays inside a bounded local scroll region. */
-.change-list { display: grid; gap: 18px; max-height: min(70dvh, 720px); overflow-y: auto; overscroll-behavior: contain; padding-inline-end: 8px; }
-.change-card { background: var(--panel); border: 1px solid var(--line); }
+.change-list { display: grid; grid-template-columns: minmax(0, 1fr); gap: 18px; max-height: min(70dvh, 720px); overflow-y: auto; overscroll-behavior: contain; padding-inline-end: 8px; }
+.change-card { min-width: 0; background: var(--panel); border: 1px solid var(--line); }
 .change-card header { display: flex; justify-content: space-between; gap: 20px; border-bottom: 1px solid var(--line); }
 .change-card p { margin: 8px 0; }
 .comparison { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; }
