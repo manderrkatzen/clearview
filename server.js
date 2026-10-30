@@ -6,7 +6,7 @@ const reviewAi = require("./src/review-ai.cjs");
 
 const root = __dirname;
 const config = { ...process.env, AI_MODE: process.env.AI_MODE || "local" };
-const mimeTypes = { ".css": "text/css", ".csv": "text/csv", ".html": "text/html", ".js": "text/javascript", ".json": "application/json", ".woff2": "font/woff2", ".txt": "text/plain" };
+const mimeTypes = { ".css": "text/css", ".csv": "text/csv", ".html": "text/html", ".js": "text/javascript", ".json": "application/json", ".woff2": "font/woff2", ".txt": "text/plain", ".png": "image/png" };
 const assets = new Set(["index.html", "app.js", "spreadsheet.js", "workspace.js", "cleaning-engine.js", "profile-worker.js", "review.js", "review-ui.js", "design-system.css", "fonts/source-sans-3-latin.woff2", "fonts/OFL.txt", "styles.css", "spreadsheet.css", "workspace.css", "healthcare_patient_visits.csv", "sales_orders.csv", "marketing_campaigns.csv", "ui_test_sheet.csv"]);
 for (const asset of ["analysis-engine.js", "analysis-worker.js", "analytics.js", "value-review.js"]) assets.add(asset);
 for (const asset of ["capabilities-engine.js", "capabilities.js", "review-page.js", "review-page-engine.js", "review-page.css", "review-bands.js"]) assets.add(asset);
@@ -15,6 +15,7 @@ assets.add("issues/multi-value.js");
 assets.add("issues/sensitive.js");
 assets.add("review-components.js");
 assets.add("review-reference.css");
+assets.add("og-image.png");
 
 async function sendWebResponse(response, result) {
   response.writeHead(result.status, Object.fromEntries(result.headers));

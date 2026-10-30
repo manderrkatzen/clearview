@@ -1,6 +1,7 @@
 # Only browser-delivered application files belong in the static asset bundle.
 *
 !index.html
+!og-image.png
 !app.js
 !spreadsheet.js
 !workspace.js
