@@ -13,7 +13,7 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || "/tmp/opencode/nod
       h1{font-size:62px;line-height:1.08;letter-spacing:-2px;margin:0;max-width:1000px}h1 span{color:#a9d7c3}
       p{font-size:23px;line-height:1.5;color:#d5e1f1;max-width:930px;margin:25px 0 30px}
       .flow{display:flex;align-items:center;gap:18px;font-size:17px;color:#d5e1f1}.step{padding:12px 20px;border:1px solid #56708f;border-radius:7px}.approved{background:#d6eee1;color:#143d2b;border-color:#d6eee1}.arrow{color:#9dbfff}
-    </style><body><div class="brand"><span class="mark">▦</span> ClearData</div>
+    </style><body><div class="brand"><span class="mark">▦</span> Clearview</div>
       <div class="eyebrow">YOUR DATA. YOUR DECISIONS.</div>
       <h1>AI-assisted data cleaning.<br><span>Human approved.</span></h1>
       <p>Upload a messy spreadsheet. AI reviews each issue with a confidence score; you choose, preview and approve every fix.</p>

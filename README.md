@@ -2,7 +2,7 @@
 
 **A portfolio project that makes data-cleaning decisions inspectable and reversible.**
 
-[Explore the live project](https://clearview-data-quality-copilot.ritwikranjanpandey.workers.dev)
+[Explore the live project](https://clearview-data-quality-copilot.pages.dev/)
 
 Clearview brings together data profiling, contextual issue detection, before-and-after analysis, optional AI recommendations, and reversible change history. The project covers the complete path from a raw CSV to a reviewed dataset and an exportable decision record.
 
@@ -116,9 +116,9 @@ Run timing-sensitive checks separately from heavy workloads.
 For browser checks, start the local server in another terminal:
 
 ```bash
-npm install --prefix /tmp/cleardata-tools playwright @axe-core/playwright
-/tmp/cleardata-tools/node_modules/.bin/playwright install --with-deps chromium
-PLAYWRIGHT_MODULE=/tmp/cleardata-tools/node_modules/playwright AXE_PLAYWRIGHT_MODULE=/tmp/cleardata-tools/node_modules/@axe-core/playwright node scripts/verify_ui.cjs
+npm install --prefix /tmp/opencode playwright @axe-core/playwright
+/tmp/opencode/node_modules/.bin/playwright install --with-deps chromium
+PLAYWRIGHT_MODULE=/tmp/opencode/node_modules/playwright AXE_PLAYWRIGHT_MODULE=/tmp/opencode/node_modules/@axe-core/playwright node scripts/verify_ui.cjs
 ```
 
 Use Node.js 22.12 or newer for the current accessibility-test tooling. Set `BASE_URL` to target another running instance and `BROWSER` to select an engine in browser-neutral suites. `scripts/verify_audit_regressions_ui.cjs` covers decision-card containment, marker overflow, selection accessibility, contrast, and keyboard scrolling. `ui_test_sheet.csv` is a debugging fixture and is not offered in the public sample chooser.

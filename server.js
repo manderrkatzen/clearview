@@ -64,4 +64,4 @@ http.createServer(async (request, response) => {
   } catch (error) {
     if (!response.headersSent) await sendWebResponse(response, ai.json({ error: error.message || "Request failed." }, error.status || 422));
   }
-}).listen(4174, "0.0.0.0", () => console.log(`Data Quality Copilot: http://localhost:4174 (${config.AI_MODE} AI mode)`));
+}).listen(4174, "0.0.0.0", () => console.log(`Clearview: http://localhost:4174 (${config.AI_MODE} AI mode)`));

@@ -2,7 +2,9 @@
 
 Clearview uses a dependency-free Node server locally and a Cloudflare Worker for the hosted application. The Worker serves static assets and handles the same-origin AI API.
 
-**Live application:** https://clearview-data-quality-copilot.ritwikranjanpandey.workers.dev
+**Live application and LinkedIn sharing URL:** https://clearview-data-quality-copilot.pages.dev/
+
+**Worker backend and original application URL:** https://clearview-data-quality-copilot.ritwikranjanpandey.workers.dev
 
 ## Local configuration
 
@@ -80,6 +82,36 @@ npx wrangler deploy --keep-vars
 For this repository's existing deployment, retain the Worker name `clearview-data-quality-copilot`, `workers_dev: true`, and `preview_urls: false`. Releases update the permanent application URL.
 
 Pushing source to GitHub and deploying the Worker are separate operations unless an external build integration has been configured. Switching a local Git branch does not change the hosted application.
+
+### LinkedIn-compatible Pages address
+
+The existing Pages project also serves the current application at
+https://clearview-data-quality-copilot.pages.dev/. LinkedIn Post Inspector can
+fetch this hostname; it reported connection failures for the `workers.dev`
+address during testing.
+
+To update the Pages application after deploying the Worker:
+
+```bash
+PAGES_ASSETS=$(node scripts/prepare_pages.cjs)
+npx wrangler pages deploy "$PAGES_ASSETS" --cwd "$PAGES_ASSETS" --project-name clearview-data-quality-copilot --branch main
+```
+
+The staging script uses Node.js 22.17 or newer and an existing `/tmp/opencode`
+directory. It copies only `.assetsignore`'s public asset allowlist into a fresh
+temporary directory and rewrites the static Open Graph URLs to the Pages
+hostname. Never deploy the repository root as a Pages asset directory.
+
+`src/pages-worker.js` becomes the Pages `_worker.js` entry point. Only `/api/*`
+requests invoke it; these are forwarded to the existing Worker backend, retaining
+its provider configuration, validation, and AI verification. This deployment does
+not use `functions/api/ai/` or require duplicate provider secrets in Pages.
+The page and preview image are served directly as public static assets.
+
+Verify the staging boundary and API forwarding with `node --test scripts/verify_pages.cjs`.
+
+Use the Pages URL when sharing on LinkedIn. As with localhost, its saved browser
+projects are origin-specific; portable backups can transfer work between hosts.
 
 ## API boundaries
 
